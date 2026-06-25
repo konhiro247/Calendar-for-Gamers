@@ -3,10 +3,14 @@ import json
 import urllib.request
 import urllib.error
 import mimetypes
+import shutil
+import subprocess
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 DEFAULT_PORT = 3000
 DIST_DIR = os.path.join(os.getcwd(), "dist")
+DIST_INDEX = os.path.join(DIST_DIR, "index.html")
+PORT_ENV_KEYS = ("WEB_PORT", "SERVER_PORT", "PORT")
 
 def load_dotenv(path=".env"):
     if not os.path.exists(path):
@@ -25,16 +29,51 @@ def load_dotenv(path=".env"):
                 os.environ[key] = value
 
 def get_web_port():
-    raw_port = os.environ.get("WEB_PORT", str(DEFAULT_PORT)).strip()
+    port_source = "default"
+    raw_port = str(DEFAULT_PORT)
+    for key in PORT_ENV_KEYS:
+        value = os.environ.get(key)
+        if value:
+            port_source = key
+            raw_port = value
+            break
+
+    raw_port = raw_port.strip()
     try:
         port = int(raw_port)
     except ValueError as exc:
-        raise ValueError(f"WEB_PORT must be an integer between 1 and 65535. Got: {raw_port}") from exc
+        raise ValueError(f"{port_source} must be an integer between 1 and 65535. Got: {raw_port}") from exc
 
     if port < 1 or port > 65535:
-        raise ValueError(f"WEB_PORT must be an integer between 1 and 65535. Got: {raw_port}")
+        raise ValueError(f"{port_source} must be an integer between 1 and 65535. Got: {raw_port}")
 
     return port
+
+def should_auto_build_frontend():
+    return os.environ.get("AUTO_BUILD_FRONTEND", "true").strip().lower() not in ("0", "false", "no", "off")
+
+def ensure_frontend_build():
+    if os.path.exists(DIST_INDEX):
+        return
+
+    if not should_auto_build_frontend():
+        print("[Python Server] dist/index.html not found and AUTO_BUILD_FRONTEND is disabled.")
+        return
+
+    npm_command = shutil.which("npm") or shutil.which("npm.cmd")
+    if not npm_command:
+        print(
+            "[Python Server] dist/index.html not found, and npm is not available. "
+            "Upload the dist directory or use an environment with Node.js/npm."
+        )
+        return
+
+    if not os.path.exists(os.path.join(os.getcwd(), "node_modules")):
+        print("[Python Server] node_modules not found. Running npm install...")
+        subprocess.run([npm_command, "install"], check=True)
+
+    print("[Python Server] dist/index.html not found. Running npm run build...")
+    subprocess.run([npm_command, "run", "build"], check=True)
 
 load_dotenv()
 PORT = get_web_port()
@@ -98,8 +137,12 @@ class GamerCalendarHandler(SimpleHTTPRequestHandler):
                     self.wfile.write(f.read())
             else:
                 self.send_response(404)
+                self.send_header("Content-Type", "text/plain; charset=utf-8")
                 self.end_headers()
-                self.wfile.write(b"Static build not found. Please run 'npm run build' first.")
+                self.wfile.write(
+                    b"Static build not found. Upload a Vite build output directory named 'dist', "
+                    b"or run 'npm run build' before starting this Python server."
+                )
 
     def do_POST(self):
         # Handle AI Extraction
@@ -282,7 +325,7 @@ class GamerCalendarHandler(SimpleHTTPRequestHandler):
         self.end_headers()
 
 def run(server_class=ThreadingHTTPServer, handler_class=GamerCalendarHandler):
-    # Ensure dist folder exists so the server starts safely
+    ensure_frontend_build()
     os.makedirs(DIST_DIR, exist_ok=True)
     
     server_address = ("0.0.0.0", PORT)

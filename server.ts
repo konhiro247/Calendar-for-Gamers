@@ -8,13 +8,15 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const DEFAULT_PORT = 3000;
+const PORT_ENV_KEYS = ["WEB_PORT", "SERVER_PORT", "PORT"] as const;
 
 function getWebPort(): number {
-  const rawPort = (process.env.WEB_PORT ?? String(DEFAULT_PORT)).trim();
+  const portSource = PORT_ENV_KEYS.find((key) => process.env[key]);
+  const rawPort = (portSource ? process.env[portSource] : String(DEFAULT_PORT))!.trim();
   const port = Number(rawPort);
 
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error(`WEB_PORT must be an integer between 1 and 65535. Got: ${rawPort}`);
+    throw new Error(`${portSource ?? "default port"} must be an integer between 1 and 65535. Got: ${rawPort}`);
   }
 
   return port;
