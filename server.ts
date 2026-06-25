@@ -7,6 +7,19 @@ import dotenv from "dotenv";
 // Load environment variables
 dotenv.config();
 
+const DEFAULT_PORT = 3000;
+
+function getWebPort(): number {
+  const rawPort = (process.env.WEB_PORT ?? String(DEFAULT_PORT)).trim();
+  const port = Number(rawPort);
+
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`WEB_PORT must be an integer between 1 and 65535. Got: ${rawPort}`);
+  }
+
+  return port;
+}
+
 // Lazy initialization of Gemini client
 let aiClient: GoogleGenAI | null = null;
 
@@ -32,7 +45,7 @@ function getGeminiClient(): GoogleGenAI {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = getWebPort();
 
   // Middleware
   app.use(express.json());
