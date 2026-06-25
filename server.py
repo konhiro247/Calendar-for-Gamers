@@ -5,8 +5,39 @@ import urllib.error
 import mimetypes
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
-PORT = 3000
+DEFAULT_PORT = 3000
 DIST_DIR = os.path.join(os.getcwd(), "dist")
+
+def load_dotenv(path=".env"):
+    if not os.path.exists(path):
+        return
+
+    with open(path, "r", encoding="utf-8-sig") as env_file:
+        for raw_line in env_file:
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip("\"'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+def get_web_port():
+    raw_port = os.environ.get("WEB_PORT", str(DEFAULT_PORT)).strip()
+    try:
+        port = int(raw_port)
+    except ValueError as exc:
+        raise ValueError(f"WEB_PORT must be an integer between 1 and 65535. Got: {raw_port}") from exc
+
+    if port < 1 or port > 65535:
+        raise ValueError(f"WEB_PORT must be an integer between 1 and 65535. Got: {raw_port}")
+
+    return port
+
+load_dotenv()
+PORT = get_web_port()
 
 class GamerCalendarHandler(SimpleHTTPRequestHandler):
     def end_headers(self):
