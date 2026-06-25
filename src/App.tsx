@@ -28,7 +28,8 @@ import {
   MessageSquare,
   MoreVertical,
   Copy,
-  Settings
+  Settings,
+  ShieldAlert
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { GameEvent, GameTag, ExtractionResult } from "./types";
@@ -44,6 +45,12 @@ import HomeView from "./components/HomeView";
 import ProfileView from "./components/ProfileView";
 import ChatParsingView from "./components/ChatParsingView";
 import GroupProfileView from "./components/GroupProfileView";
+import AdminView from "./components/AdminView";
+
+// ============================================================================
+// ADMIN CONFIGURATION (管理者のDiscordユーザーID / タグの初期設定プレースホルダー)
+// ============================================================================
+export const DEFAULT_ADMIN_DISCORD_ID = "your Discord ID";
 
 function MiniDateTimePicker({
   label,
@@ -356,7 +363,7 @@ export default function App() {
   }, [events]);
 
   // UI state
-  const [activeSidebarTab, setActiveSidebarTab] = useState<"home" | "calendar" | "chat" | "profile" | "group">("home");
+  const [activeSidebarTab, setActiveSidebarTab] = useState<"home" | "calendar" | "chat" | "profile" | "group" | "admin">("home");
   const [activeTab, setActiveTab] = useState<"calendar" | "list">("calendar");
   const [calendarView, setCalendarView] = useState<"month" | "week">("month");
   const [selectedTag, setSelectedTag] = useState<string>("All");
@@ -365,11 +372,27 @@ export default function App() {
   const [showServerDropdown, setShowServerDropdown] = useState(false);
   const [currentDate, setCurrentDate] = useState<Date>(new Date(2026, 5, 24)); // Anchor to June 24, 2026
 
+  // Admin Discord ID/Tag state
+  const [adminDiscordId, setAdminDiscordId] = useState<string>(() => {
+    const saved = localStorage.getItem("gamer_calendar_admin_discord_id");
+    return saved || DEFAULT_ADMIN_DISCORD_ID;
+  });
+
+  // Discord OAuth2 App Client ID and Secret states
+  const [discordClientId, setDiscordClientId] = useState<string>(() => {
+    return localStorage.getItem("gamer_calendar_discord_client_id") || "";
+  });
+  const [discordClientSecret, setDiscordClientSecret] = useState<string>(() => {
+    return localStorage.getItem("gamer_calendar_discord_client_secret") || "";
+  });
+
   // Discord user state
   const [discordUser, setDiscordUser] = useState<{ name: string; avatarUrl: string; tag: string } | null>(() => {
     const saved = localStorage.getItem("gamer_calendar_discord_user");
     return saved ? JSON.parse(saved) : null;
   });
+
+  const isAdmin = discordUser && (discordUser.tag === adminDiscordId || discordUser.name === adminDiscordId);
 
   const setDiscordUserAndPersist = (user: { name: string; avatarUrl: string; tag: string } | null) => {
     setDiscordUser(user);
@@ -923,6 +946,21 @@ export default function App() {
                 </span>
               </button>
 
+              {isAdmin && (
+                <button
+                  onClick={() => setActiveSidebarTab("admin")}
+                  className={`flex-1 lg:flex-initial flex items-center justify-center lg:justify-start gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${
+                    activeSidebarTab === "admin"
+                      ? "bg-red-600 text-white shadow-lg shadow-red-600/10 font-bold"
+                      : "text-red-400 hover:text-red-300 hover:bg-red-950/20"
+                  }`}
+                >
+                  <ShieldAlert className="h-4 w-4" />
+                  <span className="flex-1 text-left hidden lg:inline">管理者パネル</span>
+                  <span className="inline lg:hidden font-bold">管理パネル</span>
+                </button>
+              )}
+
 
 
               {!discordUser && (
@@ -1262,6 +1300,20 @@ export default function App() {
 
           {/* Desktop Bottom Section: Discord Login / Profile */}
           <div className="hidden lg:flex flex-col gap-3 mt-auto pt-4 border-t border-zinc-800/60" id="sidebar_bottom_widget">
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setActiveSidebarTab("admin")}
+                className={`w-full py-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
+                  activeSidebarTab === "admin"
+                    ? "bg-red-600 text-white border-red-500 shadow-red-600/15"
+                    : "bg-red-950/20 hover:bg-red-950/40 text-red-400 border-red-900/30 hover:border-red-500/30"
+                }`}
+              >
+                <ShieldAlert className="h-4 w-4 animate-pulse" />
+                <span>管理者コントロールパネル</span>
+              </button>
+            )}
             {discordUser ? (
               <div 
                 onClick={() => setActiveSidebarTab("profile")}
@@ -1327,6 +1379,21 @@ export default function App() {
               setActiveSidebarTab={setActiveSidebarTab}
               setSelectedEventId={setSelectedEventId}
               discordUser={discordUser}
+            />
+          )}
+
+          {activeSidebarTab === "admin" && (
+            <AdminView
+              events={events}
+              setEvents={setEvents}
+              adminDiscordId={adminDiscordId}
+              setAdminDiscordId={setAdminDiscordId}
+              discordUser={discordUser}
+              setToast={setToast}
+              discordClientId={discordClientId}
+              setDiscordClientId={setDiscordClientId}
+              discordClientSecret={discordClientSecret}
+              setDiscordClientSecret={setDiscordClientSecret}
             />
           )}
 
