@@ -874,7 +874,6 @@ export default function App() {
                 </div>
                 <span className="font-bold text-sm tracking-tight text-white">PartyUp!</span>
               </div>
-              <span className="text-[10px] text-zinc-500 font-medium">AI Extraction Engine</span>
             </div>
 
             {/* Sidebar Navigation Tabs - horizontal scrolling on mobile, vertical list on desktop */}
