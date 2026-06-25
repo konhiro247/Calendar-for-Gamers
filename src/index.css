@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Bento Grid / Dark Zinc Theme Colors */
+  --color-gamer-dark: #09090b;
+  --color-gamer-card: #18181b;
+  --color-gamer-border: #27272a;
+  --color-gamer-accent: #7c3aed; /* Violet-600 */
+  --color-gamer-accent-hover: #8b5cf6; /* Violet-500 */
+  --color-gamer-pink: #f43f5e;
+  --color-gamer-cyan: #06b6d4;
+  --color-gamer-yellow: #eab308;
+}
+
+body {
+  background-color: var(--color-gamer-dark);
+  color: #fafafa;
+  font-family: var(--font-sans);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #09090b;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #7c3aed;
+}

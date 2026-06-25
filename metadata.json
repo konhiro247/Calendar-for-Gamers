@@ -1,0 +1,6 @@
+{
+  "name": "PartyUp!",
+  "description": "ゲーマー向けのスケジュール調整・カレンダー管理アプリ。雑多なチャットやメモからAIが日時やゲーム名、募集人数を自動抽出してカレンダーに登録します。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
