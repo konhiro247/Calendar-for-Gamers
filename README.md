@@ -4,10 +4,20 @@
 
 This app can run in a Pterodactyl egg with Python. If Node.js/npm is also available,
 `server.py` automatically builds the frontend when `dist/` is missing.
+If the frontend build is still missing after that, the Python server exits during
+startup instead of serving a broken web page.
 
 For Python-only eggs, build the frontend on a machine with Node.js:
 
 ```bash
+npm install
+npm run build
+```
+
+If `npm install` fails on Windows with `UNABLE_TO_VERIFY_LEAF_SIGNATURE`, run:
+
+```powershell
+$env:NODE_OPTIONS="--use-system-ca"
 npm install
 npm run build
 ```
