@@ -52,21 +52,29 @@ def get_web_port():
 def should_auto_build_frontend():
     return os.environ.get("AUTO_BUILD_FRONTEND", "true").strip().lower() not in ("0", "false", "no", "off")
 
+def missing_build_message():
+    return (
+        "Static build not found. Create dist/index.html with 'npm install' and "
+        "'npm run build' before starting this Python server, or upload the built "
+        "dist/ directory with server.py."
+    )
+
 def ensure_frontend_build():
     if os.path.exists(DIST_INDEX):
         return
 
     if not should_auto_build_frontend():
-        print("[Python Server] dist/index.html not found and AUTO_BUILD_FRONTEND is disabled.")
-        return
-
-    npm_command = shutil.which("npm") or shutil.which("npm.cmd")
-    if not npm_command:
-        print(
-            "[Python Server] dist/index.html not found, and npm is not available. "
-            "Upload the dist directory or use an environment with Node.js/npm."
+        raise RuntimeError(
+            "dist/index.html not found and AUTO_BUILD_FRONTEND is disabled. "
+            + missing_build_message()
         )
-        return
+
+    npm_command = shutil.which("npm.cmd") or shutil.which("npm")
+    if not npm_command:
+        raise RuntimeError(
+            "dist/index.html not found, and npm is not available. "
+            + missing_build_message()
+        )
 
     if not os.path.exists(os.path.join(os.getcwd(), "node_modules")):
         print("[Python Server] node_modules not found. Running npm install...")
@@ -74,6 +82,9 @@ def ensure_frontend_build():
 
     print("[Python Server] dist/index.html not found. Running npm run build...")
     subprocess.run([npm_command, "run", "build"], check=True)
+
+    if not os.path.exists(DIST_INDEX):
+        raise RuntimeError("npm run build completed, but dist/index.html is still missing.")
 
 load_dotenv()
 PORT = get_web_port()
@@ -139,10 +150,7 @@ class GamerCalendarHandler(SimpleHTTPRequestHandler):
                 self.send_response(404)
                 self.send_header("Content-Type", "text/plain; charset=utf-8")
                 self.end_headers()
-                self.wfile.write(
-                    b"Static build not found. Upload a Vite build output directory named 'dist', "
-                    b"or run 'npm run build' before starting this Python server."
-                )
+                self.wfile.write(missing_build_message().encode("utf-8"))
 
     def do_POST(self):
         # Handle AI Extraction
@@ -325,7 +333,12 @@ class GamerCalendarHandler(SimpleHTTPRequestHandler):
         self.end_headers()
 
 def run(server_class=ThreadingHTTPServer, handler_class=GamerCalendarHandler):
-    ensure_frontend_build()
+    try:
+        ensure_frontend_build()
+    except (subprocess.CalledProcessError, RuntimeError) as exc:
+        print(f"[Python Server] {exc}")
+        raise SystemExit(1) from exc
+
     os.makedirs(DIST_DIR, exist_ok=True)
     
     server_address = ("0.0.0.0", PORT)
